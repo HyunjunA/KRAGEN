@@ -110,7 +110,7 @@ def config_backend(service='chatgpt'):
 
         if not 'api_key' in data[service]:
             print(f"'api_key' is not a key in {service}: {data[service]}")
-            return 
+            return
 
         data[service]['api_key'] = openai_api_key
 
@@ -128,4 +128,3 @@ def config_backend(service='chatgpt'):
         with open(config_file, 'w') as outfile:
             outfile.write(json_data)
             print(f'file: {config_file} configured.')
-

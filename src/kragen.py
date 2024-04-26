@@ -7,6 +7,7 @@ from addTokenInfo import main as tokenize
 from upload import create_class, upload
 from k_setup import setup, config_backend
 from config import config
+from extract import extract_data
 
 
 def mk_dir(directory):
@@ -54,6 +55,8 @@ def main():
             print(f"File {input_csv_file} does not exist")
             sys.exit(1)
         setup(input_csv_file)
+    elif command == 'extract':
+        extract_data()
     else:
         print("Usage: docker-compose run kragen <command> [<csv_file>]")
 
