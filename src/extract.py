@@ -14,17 +14,17 @@ def run_query(query, params={}):
 
 
 def extract_data():
-    output_dir = os.getenv('EXTRACT_OUTPUT')
+    output_dir = os.getenv('EXTRACT_OUTPUT_DIR')
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     query = """
-        MATCH (s)-[r]-(t)
+        MATCH (s)-[r]->(t)
         RETURN labels(s)[0] AS source_label, properties(s) AS source,
         type(r) AS relationship_type, labels(t)[0] AS target_label,
         properties(t) AS target
     """
-    output_file=os.path.join(output_dir, os.getenv('EXTRACT_OUTPUT_FILE'))
-    df=run_query(query)
+    output_file = os.path.join(output_dir, os.getenv('EXTRACT_OUTPUT_FILE'))
+    df = run_query(query)
     df.to_csv(output_file, index=False)

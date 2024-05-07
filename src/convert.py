@@ -6,6 +6,7 @@ import ast
 
 import dask.dataframe as dd
 
+
 def mk_dir(directory):
     os.makedirs(directory, exist_ok=True)
 
@@ -13,9 +14,11 @@ def mk_dir(directory):
 #     df = pd.read_csv(input_csv_file)
 #     return df
 
+
 def read_file(input_csv_file, chunk_size=5):
     ddf = dd.read_csv(input_csv_file, blocksize=chunk_size * 1000)
     return ddf
+
 
 def convert_csv(ddf, config):
     unique_nodes = get_unique_nodes(ddf)
@@ -23,19 +26,22 @@ def convert_csv(ddf, config):
     dataset2 = generate_relationship_dataset(ddf)
     dataset_1 = pd.DataFrame(dataset1).T
     dataset_2 = pd.DataFrame(dataset2).T
-    processed_ddf = pd.concat([dataset_1,dataset_2])
+    processed_ddf = pd.concat([dataset_1, dataset_2])
     processed_ddf = dd.from_pandas(processed_ddf, npartitions=1)
     return processed_ddf
 
+
 def get_unique_nodes_no_dask(df):
-    unique_nodes = pd.DataFrame(df[["source","source_label"]].values)
-    unique_nodes = pd.concat([unique_nodes,pd.DataFrame(df[["target","target_label"]].values)])
+    unique_nodes = pd.DataFrame(df[["source", "source_label"]].values)
+    unique_nodes = pd.concat(
+        [unique_nodes, pd.DataFrame(df[["target", "target_label"]].values)])
     unique_nodes = unique_nodes.drop_duplicates()
-    unique_nodes.columns = ["id","label"]
-    #reindex unique nodes
+    unique_nodes.columns = ["id", "label"]
+    # reindex unique nodes
     unique_nodes = unique_nodes.reset_index(drop=True)
-    
+
     return unique_nodes
+
 
 def get_unique_nodes(ddf):
     """Extracts unique nodes from a Dask DataFrame.
@@ -52,50 +58,53 @@ def get_unique_nodes(ddf):
         .compute()  # Materialize to avoid unnecessary shuffling
     )
     unique_nodes_source.columns = ["id", "label"]
-    
+
     unique_nodes_target = (
         ddf[["target", "target_label"]].drop_duplicates()
         .compute()  # Materialize to avoid unnecessary shuffling
     )
     unique_nodes_target.columns = ["id", "label"]
-    
-    unique_nodes = dd.concat([unique_nodes_source, unique_nodes_target]).drop_duplicates().compute()
+
+    unique_nodes = dd.concat(
+        [unique_nodes_source, unique_nodes_target]).drop_duplicates().compute()
 
     unique_nodes = unique_nodes.reset_index(drop=True)
 
     return unique_nodes
 
+
 def generate_unique_node_dataset(unique_nodes):
     dataset = {}
     index = 0
-    
-    
+
     for type in unique_nodes["label"].unique():
-        temp = unique_nodes[unique_nodes["label"]==type].copy()
+        temp = unique_nodes[unique_nodes["label"] == type].copy()
         for i in range(temp.shape[0]):
             # print(temp.iloc[i]["id"])
             id = temp.iloc[i]["id"]
             # pprint.pprint(id)
             # json.dumps(id)
-            #escape single quotes
+            # escape single quotes
             # id = id.replace("'","\\'")
             # convert string into json after escaping single and double quotes. replace single quotes with double quotes
             # id = json.dumps(eval(id))
             id = ast.literal_eval(id)
             # print(id)
             # id = parse_json_string(id)
-    
+
             match type:
                 case "Gene":
-                    statement = "Gene " + id["geneSymbol"] + " is a "+id["typeOfGene"] + " gene for " + id["commonName"]
+                    statement = "Gene " + \
+                        id["geneSymbol"] + " is a "+id["typeOfGene"] + \
+                        " gene for " + id["commonName"]
                     # print(statement)
                     query = "What does the gene " + id["geneSymbol"] + " do?"
                     # print(query)
-    
-                #drugs should be set as relationships to the disease
+
+                # drugs should be set as relationships to the disease
                 case "Drug":
                     continue
-                #disease should be set as relationships to the gene
+                # disease should be set as relationships to the gene
                 case "Disease":
                     continue
                 case "Symptom":
@@ -112,16 +121,17 @@ def generate_unique_node_dataset(unique_nodes):
                     continue
                 case "DrugClass":
                     continue
-            dataset[index] = {"query":query,"statement":statement}
+            dataset[index] = {"query": query, "statement": statement}
             index += 1
     return dataset
+
 
 def convert_relation(relation):
     match relation:
         case "chemical or drug binds the gene" | "chemical or drug increases the gene expression" | "chemical or drug decreases the gene expression" | \
             "chemical or drug in the drug class" | "chemical or drug treats the disease" | "chemical or drug causes effect to the disease" | \
                 "gene participates in the biological process" | "gene interacts with the gene" | "body part over-expresses the gene" | \
-                    "body part under-expresses the gene":
+                "body part under-expresses the gene":
             return " because the " + relation
         case "gene in the pathway":
             return " because the gene is in the pathway"
@@ -131,22 +141,25 @@ def convert_relation(relation):
             return " because the disease localizes to the body part"
         case _:
             return ""
+
+
 def generate_relationship_dataset(df):
     # df = pd.DataFrame(df[["source","source_label","target","target_label","relationship_type"]].values)
     # df.columns = ["source","source_label","target","target_label","relationship_type"]
-    
-    df = df[["source", "source_label", "target", "target_label", "relationship_type"]]
-    
+
+    df = df[["source", "source_label", "target",
+             "target_label", "relationship_type"]]
+
     dataset2 = {}
     index = 0
     for source_label in df["source_label"].unique().compute():
         print(source_label)
-        temp = df[df["source_label"]==source_label]
-        #'Gene', 'Drug', 'Disease', 'Symptom', 'BodyPart'
+        temp = df[df["source_label"] == source_label]
+        # 'Gene', 'Drug', 'Disease', 'Symptom', 'BodyPart'
         match source_label:
             case "Gene":
                 for target_label in temp["target_label"].unique().compute():
-                    temp2 = temp[temp["target_label"]==target_label]
+                    temp2 = temp[temp["target_label"] == target_label]
                     temp2 = temp2.compute().reset_index(drop=True)
                     for i in temp2.index:
                         source = temp2.iloc[i]["source"]
@@ -155,40 +168,64 @@ def generate_relationship_dataset(df):
                         target = ast.literal_eval(target)
                         relation = temp2.iloc[i]["relationship_type"]
                         match target_label:
-                            #['Pathway' 'Gene' 'BiologicalProcess' 'CellularComponent' 'MolecularFunction' 'Disease']
+                            # ['Pathway' 'Gene' 'BiologicalProcess' 'CellularComponent' 'MolecularFunction' 'Disease']
                             case "Pathway":
-                                query = "What pathway is the gene " + source["geneSymbol"] + " involved in?"
-                                statement = "The gene " + source["geneSymbol"] + " is involved in the " + target["commonName"] + " pathway"
+                                query = "What pathway is the gene " + \
+                                    source["geneSymbol"] + " involved in?"
+                                statement = "The gene " + \
+                                    source["geneSymbol"] + " is involved in the " + \
+                                    target["commonName"] + " pathway"
                                 # print(query,statement)
                             case "Gene":
-                                query = "What gene is associated with " + source["geneSymbol"] + "?"
-                                statement = "The gene " + source["geneSymbol"] + " is associated with the gene " + target["geneSymbol"]
+                                query = "What gene is associated with " + \
+                                    source["geneSymbol"] + "?"
+                                statement = "The gene " + \
+                                    source["geneSymbol"] + \
+                                    " is associated with the gene " + \
+                                    target["geneSymbol"]
                                 # print(query,statement)
                             case "BiologicalProcess":
-                                query = "What biological process is the gene " + source["geneSymbol"] + " involved in?"
-                                statement = "The gene " + source["geneSymbol"] + " is involved in the biological process " + target["commonName"]
+                                query = "What biological process is the gene " + \
+                                    source["geneSymbol"] + " involved in?"
+                                statement = "The gene " + \
+                                    source["geneSymbol"] + \
+                                    " is involved in the biological process " + \
+                                    target["commonName"]
                                 # print(query,statement)
                             case "CellularComponent":
-                                query = "What cellular component is the gene " + source["geneSymbol"] + " involved in?"
-                                statement = "The gene " + source["geneSymbol"] + " is involved in the cellular component " + target["commonName"]
+                                query = "What cellular component is the gene " + \
+                                    source["geneSymbol"] + " involved in?"
+                                statement = "The gene " + \
+                                    source["geneSymbol"] + \
+                                    " is involved in the cellular component " + \
+                                    target["commonName"]
                                 # print(query,statement)
                             case "MolecularFunction":
-                                query = "What molecular function is the gene " + source["geneSymbol"] + " involved in?"
-                                statement = "The gene " + source["geneSymbol"] + " is involved in the molecular function " + target["commonName"]
+                                query = "What molecular function is the gene " + \
+                                    source["geneSymbol"] + " involved in?"
+                                statement = "The gene " + \
+                                    source["geneSymbol"] + \
+                                    " is involved in the molecular function " + \
+                                    target["commonName"]
                                 # print(query,statement)
                             case "Disease":
-                                query = "What disease is the gene " + source["geneSymbol"] + " associated with?"
-                                statement = "The gene " + source["geneSymbol"] + " is associated with the disease " + target["commonName"]
+                                query = "What disease is the gene " + \
+                                    source["geneSymbol"] + " associated with?"
+                                statement = "The gene " + \
+                                    source["geneSymbol"] + \
+                                    " is associated with the disease " + \
+                                    target["commonName"]
                                 # print(query,statement)
-    
+
                         statement += convert_relation(relation)
-                        dataset2[index] = {"query":query,"statement":statement}
+                        dataset2[index] = {
+                            "query": query, "statement": statement}
                         index += 1
                 continue
-            case "Drug": 
-                print(source_label,temp["target_label"].unique().compute())
+            case "Drug":
+                print(source_label, temp["target_label"].unique().compute())
                 for target_label in temp["target_label"].unique().compute():
-                    temp2 = temp[temp["target_label"]==target_label]
+                    temp2 = temp[temp["target_label"] == target_label]
                     temp2 = temp2.compute().reset_index(drop=True)
                     for i in temp2.index:
                         source = temp2.loc[i]["source"]
@@ -198,30 +235,41 @@ def generate_relationship_dataset(df):
                         target = ast.literal_eval(target)
                         relation = temp2.loc[i]["relationship_type"]
                         match target_label:
-                            #['Gene' 'DrugClass' 'Disease']
+                            # ['Gene' 'DrugClass' 'Disease']
                             case "Gene":
-                                query = "What gene is the drug " + source["commonName"] + " associated with?"
-                                statement = "The gene " + target["geneSymbol"] + " is associated with the drug " + source["commonName"]
+                                query = "What gene is the drug " + \
+                                    source["commonName"] + " associated with?"
+                                statement = "The gene " + \
+                                    target["geneSymbol"] + \
+                                    " is associated with the drug " + \
+                                    source["commonName"]
                                 # print(query,statement)
                             case "DrugClass":
-                                query = "What drug class is the drug " + source["commonName"] + " part of?"
-                                statement = "The drug " + source["commonName"] + " is part of the " + target["commonName"] + " drug class"
+                                query = "What drug class is the drug " + \
+                                    source["commonName"] + " part of?"
+                                statement = "The drug " + \
+                                    source["commonName"] + " is part of the " + \
+                                    target["commonName"] + " drug class"
                                 # print(query,statement)
                             case "Disease":
-                                query = "What disease is the drug " + source["commonName"] + " associated with?"
-                                statement = "The drug " + source["commonName"] + " is associated with " + target["commonName"]
+                                query = "What disease is the drug " + \
+                                    source["commonName"] + " associated with?"
+                                statement = "The drug " + \
+                                    source["commonName"] + \
+                                    " is associated with " + \
+                                    target["commonName"]
                                 # print(query,statement)
                         statement += convert_relation(relation)
-                        dataset2[index] = {"query":query,"statement":statement}
+                        dataset2[index] = {
+                            "query": query, "statement": statement}
                         index += 1
-                    
-                
+
                 continue
             case "Disease":
                 print(source_label)
                 print(temp["target_label"].unique().compute())
                 for target_label in temp["target_label"].unique().compute():
-                    temp2 = temp[temp["target_label"]==target_label]
+                    temp2 = temp[temp["target_label"] == target_label]
                     temp2 = temp2.compute().reset_index(drop=True)
                     for i in temp2.index:
                         source = temp2.iloc[i]["source"]
@@ -230,24 +278,33 @@ def generate_relationship_dataset(df):
                         target = ast.literal_eval(target)
                         relation = temp2.iloc[i]["relationship_type"]
                         match target_label:
-                            #['BodyPart' 'Disease']
+                            # ['BodyPart' 'Disease']
                             case "BodyPart":
-                                query = "What body part is affected by " + source["commonName"] + "?"
-                                statement = "The "+target["commonName"] + " is associated with " + source["commonName"]
+                                query = "What body part is affected by " + \
+                                    source["commonName"] + "?"
+                                statement = "The " + \
+                                    target["commonName"] + \
+                                    " is associated with " + \
+                                    source["commonName"]
                                 # print(query,statement)
                             case "Disease":
-                                query = "What disease is associated with " + source["commonName"] + "?"
-                                statement = "The disease " + source["commonName"] + " is associated with " + target["commonName"]
+                                query = "What disease is associated with " + \
+                                    source["commonName"] + "?"
+                                statement = "The disease " + \
+                                    source["commonName"] + \
+                                    " is associated with " + \
+                                    target["commonName"]
                                 # print(query,statement)
                         statement += convert_relation(relation)
-                        dataset2[index] = {"query":query,"statement":statement}
+                        dataset2[index] = {
+                            "query": query, "statement": statement}
                         index += 1
                 continue
             case "Symptom":
                 print(source_label)
                 print(temp["target_label"].unique().compute())
                 for target_label in temp["target_label"].unique().compute():
-                    temp2 = temp[temp["target_label"]==target_label]
+                    temp2 = temp[temp["target_label"] == target_label]
                     temp2 = temp2.compute().reset_index(drop=True)
                     for i in temp2.index:
                         source = temp2.iloc[i]["source"]
@@ -256,20 +313,24 @@ def generate_relationship_dataset(df):
                         target = ast.literal_eval(target)
                         relation = temp2.iloc[i]["relationship_type"]
                         match target_label:
-                            #[['Disease']
+                            # [['Disease']
                             case "Disease":
-                                query = "What symptom is associated with " + target["commonName"] + "?"
-                                statement = source["commonName"] + " is associated with " + target["commonName"]
+                                query = "What symptom is associated with " + \
+                                    target["commonName"] + "?"
+                                statement = source["commonName"] + \
+                                    " is associated with " + \
+                                    target["commonName"]
                                 # print(query,statement)
                         statement += convert_relation(relation)
-                        dataset2[index] = {"query":query,"statement":statement}
+                        dataset2[index] = {
+                            "query": query, "statement": statement}
                         index += 1
                 continue
             case "BodyPart":
                 print(source_label)
                 print(temp["target_label"].unique().compute())
                 for target_label in temp["target_label"].unique().compute():
-                    temp2 = temp[temp["target_label"]==target_label]
+                    temp2 = temp[temp["target_label"] == target_label]
                     temp2 = temp2.compute().reset_index(drop=True)
                     for i in temp2.index:
                         source = temp2.iloc[i]["source"]
@@ -278,24 +339,34 @@ def generate_relationship_dataset(df):
                         target = ast.literal_eval(target)
                         relation = temp2.iloc[i]["relationship_type"]
                         match target_label:
-                            #['Gene' ]
+                            # ['Gene' ]
                             case "Gene":
-                                query = "What body part is the gene " + target["geneSymbol"] + " associated with?"
-                                statement = "The gene " + target["geneSymbol"] + " is associated with the " + source["commonName"]
+                                query = "What body part is the gene " + \
+                                    target["geneSymbol"] + " associated with?"
+                                statement = "The gene " + \
+                                    target["geneSymbol"] + \
+                                    " is associated with the " + \
+                                    source["commonName"]
                                 # print(query,statement)
                         statement += convert_relation(relation)
-                        dataset2[index] = {"query":query,"statement":statement}
+                        dataset2[index] = {
+                            "query": query, "statement": statement}
                         index += 1
                 continue
 
     return dataset2
 
 # Save the Dask DataFrame to CSV files
+
+
 def save_csv(ddf, directory, filename):
-    ddf.to_csv(os.path.join(directory, filename), index=False, single_file=True)
+    ddf.to_csv(os.path.join(directory, filename),
+               index=False, single_file=True)
+
 
 def run(config):
     ddf = read_file(config['input_file'])
-    converted_ddf = convert_csv(ddf,config)
+    converted_ddf = convert_csv(ddf, config)
     mk_dir(config['output_directory'])
-    save_csv(converted_ddf, config['output_directory'], config['output_filename'])
+    save_csv(converted_ddf,
+             config['output_directory'], config['output_filename'])
