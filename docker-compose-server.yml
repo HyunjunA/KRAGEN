@@ -1,5 +1,5 @@
 services:
-  execgpt:
+  server:
     build:
       context: ./KRAGEN_Dashboard/Backend
       dockerfile: Dockerfile
@@ -8,7 +8,9 @@ services:
     container_name: kragen-server
     ports:
       - 5050:5050
-    # entrypoint: ["python", "src/kragen.py"]
+    volumes:
+      - "./:/app"
+    working_dir: /app
     env_file:
       - .env
       - config/kragen.env

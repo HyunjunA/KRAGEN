@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 ARG docker_files=docker
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # WORKDIR /app
 # COPY src/*.py .
@@ -12,4 +12,4 @@ RUN apt update --fix-missing \
     && pip install --upgrade pip \
     && pip install -r requirements.txt
 
-ENTRYPOINT [ "python", "/usr/src/app/kragen.py" ]
+ENTRYPOINT [ "python", "src/kragen.py" ]

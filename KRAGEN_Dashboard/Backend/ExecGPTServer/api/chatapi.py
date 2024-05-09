@@ -12,6 +12,9 @@ import sys
 
 from got import ALZKBPrompter, ALZKBParser
 
+print('hello test')
+print('hello test again')
+
 bp = Blueprint('chatapi', __name__, url_prefix='/chatapi/v1')
 
 # Enable CORS on the blueprint

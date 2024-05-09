@@ -7,8 +7,8 @@ services:
         docker_files: 'docker'
     image: kragen:${TAG}
     volumes:
-      - "./:/usr/src/app"
-    working_dir: /usr/src/app
+      - "./:/app"
+    working_dir: /app
     entrypoint: ["python", "src/kragen.py"]
     env_file:
       - .env
