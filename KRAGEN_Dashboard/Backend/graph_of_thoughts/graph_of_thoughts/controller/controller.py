@@ -71,9 +71,14 @@ class Controller:
             if operation.can_be_executed()
         ]
 
+        self.logger.debug(f"execution_queue length: {len(execution_queue)}")
+        for operation in execution_queue:
+            self.logger.debug(f"operation.type: {operation.operation_type}")
+
         while len(execution_queue) > 0:
             current_operation = execution_queue.pop(0)
             self.logger.info("Executing operation %s", current_operation.operation_type)
+            self.logger.debug(f"current_operation: {current_operation}")
             current_operation.execute(
                 self.lm, self.prompter, self.parser, **self.problem_parameters
             )

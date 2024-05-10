@@ -183,8 +183,8 @@ def got():
             "method" : "got_dynamic"
         }
         )
-        # ctrl.logger.addHandler(logging.StreamHandler(sys.stdout))
-        # ctrl.logger.setLevel(logging.INFO)
+        ctrl.logger.addHandler(logging.StreamHandler(sys.stdout))
+        ctrl.logger.setLevel(logging.DEBUG)
 
         # Run the Controller and generate the output graph
         ctrl.run()

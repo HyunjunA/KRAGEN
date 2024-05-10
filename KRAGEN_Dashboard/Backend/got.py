@@ -426,15 +426,21 @@ You may provide reasoning for your scoring, but the final score should be betwee
         :raise AssertionError: If method is not implemented yet.
         """
         
+        print("*In AlzKBPrompter.generate_prompt*")
+        
         statement_to_embed, additional_instruction, question = self.extract_details(question_type, question)
             
         # print("statement_to_embed:", statement_to_embed)
         # print("question:", question)
         if method.startswith("io") or method.startswith("fewshot") or method.startswith("cot") or (method.startswith("got") and kwargs["phase"] > 0):
+            print(f"**Phase must be > 0: {kwargs['phase']}")
             if method.startswith("got"):
                 # print("kwargs:",kwargs)
                 if kwargs["phase"] == 1 and "edges" in kwargs and "edge_id" in kwargs and kwargs["edge_id"] < len(kwargs["edges"]):
                     statement_to_embed = kwargs["edges"][kwargs["edge_id"]]
+                    print(f"***kwargs['edges']: {kwargs['edges']}")
+                    print(f"***kwargs['edge_id]: {kwargs['edge_id']}")
+                    print(f"***statement_to_embed: {statement_to_embed}")
                     # may have ! in side the statement_to_embed so it'll be removed for embedding
                     #count the number of ! in the statement_to_embed to determine if it's a specific node or a node type
                     if statement_to_embed.count("!") >= 2:
@@ -448,45 +454,62 @@ You may provide reasoning for your scoring, but the final score should be betwee
                         for node_filter in node_filters:
                             # print("node_filter:", node_filter)
                             knowledge_array,distances = self.vector_db.get_knowledge(embedded_question, keyword_filter = node_filter)
+                            print(f"***knowledge_array: {knowledge_array}")
                             if len(node_filters) > 1:
                                 for node_filter in node_filters:
                                     # remove knowledge that doesn't contain the node_filter
                                     knowledge_array = [knowledge for knowledge in knowledge_array if node_filter in knowledge]
                             knowledge_arrays.append(knowledge_array)
+                        print(f"knowledge_arrays: {knowledge_arrays}")
                         # get the unique union of the knowledge arrays
                         knowledge_array = list(set().union(*knowledge_arrays))
+                        print(f"***knowledge_array list union: {knowledge_array}")
                         knowledge = "\n".join(knowledge_array)
                         # print(knowledge)
+                        print(f"***knowledge: {knowledge}")
                     else:
                         # print("getting knowledge to statement:", statement_to_embed)
+                        print("***getting knowledge to statement:", statement_to_embed)
                         embedded_question = self.lm.get_embedding(statement_to_embed)
+                        print(f"***embedded_question: {embedded_question}")
                         knowledge_array,distances = self.vector_db.get_knowledge(embedded_question)
                         knowledge = "\n".join(knowledge_array)
+                        print(f"***knowledge: {knowledge}")
                 
             else:
                 # print("getting knowledge to statement:", statement_to_embed)
+                print(f"***method does not start with 'got': {method}")
                 embedded_question = self.lm.get_embedding(statement_to_embed)
+                print(f"***embedded_question: {embedded_question}")
                 knowledge_array,distances = self.vector_db.get_knowledge(embedded_question)
                 knowledge = "\n".join(knowledge_array)
+                print(f"***knowledge: {knowledge}")
         
         prompt = ""
+
         assert num_branches == 1, "Branching should be done via multiple requests."
+        print(f"***method: (what does it start with?): {method}")
         if method.startswith("io"):
-            # print(self.io_prompt.format(knowledge=knowledge, question=question, additional_instruction=additional_instruction))
+            print("***method starts with 'io'")
+            print(self.io_prompt.format(knowledge=knowledge, question=question, additional_instruction=additional_instruction))
             return self.io_prompt.format(knowledge=knowledge, question=question, additional_instruction=additional_instruction)
         elif method.startswith("fewshot"):
+            print("***method starts with 'fewshot'")
+            print(self.io_prompt.format(knowledge=knowledge, question=question, additional_instruction=additional_instruction))
             return self.few_shot_prompt.format(knowledge=knowledge, question=question, additional_instruction=additional_instruction)
         elif method.startswith("cot"):
+            print("***method starts with 'cot'")
             if (current is None or current == "") and kwargs["phase"] == 0:
                 return self.cot_instruction_prompt.format(question=question)
             else:
                 prompt += self.cot_prompt.format(knowledge=knowledge, question=question, additional_instruction=additional_instruction)
                 return prompt
         elif method.startswith("got"):
+            print("method starts with 'got'")
             if (current is None or current == "") and kwargs["phase"] == 0:
                 return self.cot_instruction_prompt.format(question=question)
             else:
-                # print("generate prompt kwargs:", kwargs)
+                print("generate prompt kwargs:", kwargs)
                 if "edge_id" in kwargs and "edges" in kwargs and kwargs["edge_id"] < len(kwargs["edges"]) and kwargs["phase"] == 1:
                     if statement_to_embed.count("!") == 2:
                         prompt += self.cot_single_focus_filter_knowledge_prompt.format(statement = statement_to_embed_cleaned, knowledge=knowledge)
@@ -497,9 +520,9 @@ You may provide reasoning for your scoring, but the final score should be betwee
                 elif kwargs["phase"] == 2:
                     prompt = ""
                     # assert len(state_dicts) == 2, "Expected two states for aggregation prompt."
-                    # print(kwargs["knowledge"])
+                    print(kwargs["knowledge"])
                     prompt += self.got_answer_prompt.format(question = question, knowledge="\n".join(kwargs["knowledge"])       , additional_instruction=additional_instruction)
-                    # print(prompt)
+                    print(prompt)
 
                     # prompt += self.io_prompt.format(knowledge=kwargs["phase"], question=question, additional_instruction=additional_instruction)
                     # prompt += self.cot_aggregate_prompt.format(question = question, knowledge=kwargs["phase"])
