@@ -1,22 +1,22 @@
-import { NodeEditor, GetSchemes, ClassicPreset } from 'rete';
+import { NodeEditor, GetSchemes, ClassicPreset } from "rete";
 
-import { AreaPlugin } from 'rete-area-plugin';
+import { AreaPlugin } from "rete-area-plugin";
 import {
   ConnectionPlugin,
   Presets as ConnectionPresets,
-} from 'rete-connection-plugin';
+} from "rete-connection-plugin";
 import {
   ReactPlugin,
   ReactArea2D,
   Presets as ReactPresets,
-} from 'rete-react-plugin';
+} from "rete-react-plugin";
 
-import { CustomNode } from '../customization/CustomNode';
-import { StyledNode } from '../customization/StyledNode';
-import { CustomSocket } from '../customization/CustomSocket';
-import { CustomConnection } from '../customization/CustomConnection';
+import { CustomNode } from "../customization/CustomNode";
+import { StyledNode } from "../customization/StyledNode";
+import { CustomSocket } from "../customization/CustomSocket";
+import { CustomConnection } from "../customization/CustomConnection";
 
-import { addCustomBackground } from '../customization/custom-background';
+import { addCustomBackground } from "../customization/custom-background";
 
 type Schemes = GetSchemes<
   ClassicPreset.Node,
@@ -24,7 +24,7 @@ type Schemes = GetSchemes<
 >;
 type AreaExtra = ReactArea2D<Schemes>;
 
-const socket = new ClassicPreset.Socket('socket');
+const socket = new ClassicPreset.Socket("socket");
 
 export async function createEditor(container: HTMLElement) {
   const editor = new NodeEditor<Schemes>();
@@ -36,10 +36,10 @@ export async function createEditor(container: HTMLElement) {
     ReactPresets.classic.setup({
       customize: {
         node(context) {
-          if (context.payload.label === 'Fully customized') {
+          if (context.payload.label === "Fully customized") {
             return CustomNode;
           }
-          if (context.payload.label === 'Override styles') {
+          if (context.payload.label === "Override styles") {
             return StyledNode;
           }
           return ReactPresets.classic.Node;
@@ -62,23 +62,23 @@ export async function createEditor(container: HTMLElement) {
   area.use(connection);
   area.use(reactRender);
 
-  const aLabel = 'Override styles';
-  const bLabel = 'Fully customized';
+  const aLabel = "Override styles";
+  const bLabel = "Fully customized";
 
   const a = new ClassicPreset.Node(aLabel);
-  a.addOutput('a', new ClassicPreset.Output(socket));
-  a.addInput('a', new ClassicPreset.Input(socket));
+  a.addOutput("a", new ClassicPreset.Output(socket));
+  a.addInput("a", new ClassicPreset.Input(socket));
   await editor.addNode(a);
 
   const b = new ClassicPreset.Node(bLabel);
-  b.addOutput('a', new ClassicPreset.Output(socket));
-  b.addInput('a', new ClassicPreset.Input(socket));
+  b.addOutput("a", new ClassicPreset.Output(socket));
+  b.addInput("a", new ClassicPreset.Input(socket));
   await editor.addNode(b);
 
   await area.translate(a.id, { x: 0, y: 0 });
   await area.translate(b.id, { x: 300, y: 0 });
 
-  await editor.addConnection(new ClassicPreset.Connection(a, 'a', b, 'a'));
+  await editor.addConnection(new ClassicPreset.Connection(a, "a", b, "a"));
 
   return {
     destroy: () => area.destroy(),

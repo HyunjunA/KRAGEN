@@ -39,7 +39,10 @@ function App() {
         <div className="chartsbaseright bg-gray-950 pt-2 pl-2 pb-0"></div>
         <div
           id="chatgpt-space"
-          style={{ width: "100vw", height: "100vh" }}
+          // for full screen
+          // style={{ width: "100vw", height: "100vh" }}
+          // for half screen with Visual Programming
+          style={{ width: "100vw", height: "50vh" }}
           className="chatbaseleft bg-gray-950 pt-2 pl-2 pb-0"
         >
           {/* <ChatGPTForKRAGENSim experiment={"kragensim"} /> */}

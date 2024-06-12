@@ -1,15 +1,15 @@
-import { ClassicPreset as Classic, GetSchemes, NodeEditor } from 'rete';
+import { ClassicPreset as Classic, GetSchemes, NodeEditor } from "rete";
 
-import { Area2D, AreaPlugin } from 'rete-area-plugin';
+import { Area2D, AreaPlugin } from "rete-area-plugin";
 import {
   ConnectionPlugin,
   Presets as ConnectionPresets,
-} from 'rete-connection-plugin';
+} from "rete-connection-plugin";
 import {
   ReactPlugin,
   ReactArea2D,
   Presets as ReactPresets,
-} from 'rete-react-plugin';
+} from "rete-react-plugin";
 
 type Node = NumberNode | AddNode;
 type Conn =
@@ -25,33 +25,33 @@ class Connection<A extends Node, B extends Node> extends Classic.Connection<
 
 class NumberNode extends Classic.Node {
   constructor(initial: number, change?: (value: number) => void) {
-    super('Number');
+    super("Number");
 
-    this.addOutput('value', new Classic.Output(socket, 'Number'));
+    this.addOutput("value", new Classic.Output(socket, "Number"));
     this.addControl(
-      'value',
-      new Classic.InputControl('number', { initial, change })
+      "value",
+      new Classic.InputControl("number", { initial, change })
     );
   }
 }
 
 class AddNode extends Classic.Node {
   constructor() {
-    super('Add');
+    super("Add");
 
-    this.addInput('a', new Classic.Input(socket, 'A'));
-    this.addInput('b', new Classic.Input(socket, 'B'));
-    this.addOutput('value', new Classic.Output(socket, 'Number'));
+    this.addInput("a", new Classic.Input(socket, "A"));
+    this.addInput("b", new Classic.Input(socket, "B"));
+    this.addOutput("value", new Classic.Output(socket, "Number"));
     this.addControl(
-      'result',
-      new Classic.InputControl('number', { initial: 0, readonly: true })
+      "result",
+      new Classic.InputControl("number", { initial: 0, readonly: true })
     );
   }
 }
 
 type AreaExtra = Area2D<Schemes> | ReactArea2D<Schemes>;
 
-const socket = new Classic.Socket('socket');
+const socket = new Classic.Socket("socket");
 
 export async function createEditor(container: HTMLElement) {
   const editor = new NodeEditor<Schemes>();
@@ -76,11 +76,12 @@ export async function createEditor(container: HTMLElement) {
   await editor.addNode(b);
   await editor.addNode(add);
 
-  await editor.addConnection(new Connection(a, 'value', add, 'a'));
-  await editor.addConnection(new Connection(b, 'value', add, 'b'));
+  await editor.addConnection(new Connection(a, "value", add, "a"));
+  await editor.addConnection(new Connection(b, "value", add, "b"));
 
   await area.nodeViews.get(a.id)?.translate(100, 100);
   await area.nodeViews.get(b.id)?.translate(100, 300);
+  // await area.nodeViews.get(b.id)?.translate(100, 400);
   await area.nodeViews.get(add.id)?.translate(400, 150);
 
   return {

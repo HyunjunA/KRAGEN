@@ -25,7 +25,11 @@ function App() {
         } },
         react_1["default"].createElement("div", { className: "flex flex-row h-screen overflow-y-hidden" },
             react_1["default"].createElement("div", { className: "chartsbaseright bg-gray-950 pt-2 pl-2 pb-0" }),
-            react_1["default"].createElement("div", { id: "chatgpt-space", style: { width: "100vw", height: "100vh" }, className: "chatbaseleft bg-gray-950 pt-2 pl-2 pb-0" },
+            react_1["default"].createElement("div", { id: "chatgpt-space", 
+                // for full screen
+                // style={{ width: "100vw", height: "100vh" }}
+                // for half screen with Visual Programming
+                style: { width: "100vw", height: "50vh" }, className: "chatbaseleft bg-gray-950 pt-2 pl-2 pb-0" },
                 react_1["default"].createElement(ChatGPTForKRAGENLoc_1["default"], { experiment: "kragenloc" }),
                 react_1["default"].createElement(VISPROG_1["default"], null)))));
 }
